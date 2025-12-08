@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Booking System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-10 mx-auto">
+                <h1 class="text-center mb-4">
+                    <i class="fas fa-calendar-check text-primary"></i> Appointment Booking System
+                </h1>
+                
+                <!-- Book Appointment Form -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Book New Appointment</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="appointmentForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="customerName" class="form-label">Full Name *</label>
+                                    <input type="text" class="form-control" id="customerName" placeholder="John Doe" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="customerEmail" class="form-label">Email *</label>
+                                    <input type="email" class="form-control" id="customerEmail" placeholder="john@example.com" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="customerPhone" class="form-label">Phone Number *</label>
+                                    <input type="tel" class="form-control" id="customerPhone" placeholder="+1234567890" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="service" class="form-label">Service *</label>
+                                    <select class="form-select" id="service" required>
+                                        <option value="">Select a service</option>
+                                        <option value="Consultation">Consultation</option>
+                                        <option value="Haircut">Haircut</option>
+                                        <option value="Dental Checkup">Dental Checkup</option>
+                                        <option value="Medical Consultation">Medical Consultation</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="appointmentDate" class="form-label">Appointment Date *</label>
+                                    <input type="date" class="form-control" id="appointmentDate" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="appointmentTime" class="form-label">Appointment Time *</label>
+                                    <input type="time" class="form-control" id="appointmentTime" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">Additional Notes</label>
+                                <textarea class="form-control" id="notes" rows="3" placeholder="Any special requirements..."></textarea>
+                            </div>
+                            <input type="hidden" id="editingId" value="">
+                            <input type="hidden" id="editingStatus" value="pending">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-calendar-plus"></i> Book Appointment
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="cancelBtn" style="display: none;" onclick="resetForm()">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Filter Options -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <label for="filterStatus" class="form-label mb-0">Filter by Status:</label>
+                            </div>
+                            <div class="col-md-8">
+                                <select class="form-select" id="filterStatus" onchange="loadAppointments()">
+                                    <option value="all">All Appointments</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="confirmed">Confirmed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Appointments List -->
+                <div id="appointmentsList">
+                    <!-- Appointments will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Set minimum date to today
+        document.getElementById('appointmentDate').min = new Date().toISOString().split('T')[0];
+
+        // Load appointments on page load
+        document.addEventListener('DOMContentLoaded', loadAppointments);
+
+        // Form submission
+        document.getElementById('appointmentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const editingId = document.getElementById('editingId').value;
+            const appointmentData = {
+                customer_name: document.getElementById('customerName').value,
+                customer_email: document.getElementById('customerEmail').value,
+                customer_phone: document.getElementById('customerPhone').value,
+                appointment_date: document.getElementById('appointmentDate').value,
+                appointment_time: document.getElementById('appointmentTime').value,
+                service: document.getElementById('service').value,
+                notes: document.getElementById('notes').value,
+                status: document.getElementById('editingStatus').value
+            };
+            
+            if (editingId) {
+                await updateAppointment(editingId, appointmentData);
+            } else {
+                await createAppointment(appointmentData);
+            }
+            
+            resetForm();
+            loadAppointments();
+        });
+
+        async function loadAppointments() {
+            try {
+                const response = await fetch('/api/appointments');
+                const appointments = await response.json();
+                const filter = document.getElementById('filterStatus').value;
+                const filteredAppointments = filter === 'all' 
+                    ? appointments 
+                    : appointments.filter(apt => apt.status === filter);
+                displayAppointments(filteredAppointments);
+            } catch (error) {
+                console.error('Error loading appointments:', error);
+            }
+        }
+
+        function displayAppointments(appointments) {
+            const appointmentsList = document.getElementById('appointmentsList');
+            
+            if (appointments.length === 0) {
+                appointmentsList.innerHTML = '<div class="text-center text-muted p-4">No appointments found. Book your first appointment!</div>';
+                return;
+            }
+            
+            appointmentsList.innerHTML = appointments.map(apt => {
+                const statusClass = {
+                    'pending': 'warning',
+                    'confirmed': 'success',
+                    'cancelled': 'danger',
+                    'completed': 'secondary'
+                }[apt.status] || 'info';
+                
+                return `
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">${escapeHtml(apt.customer_name)}</h5>
+                            <span class="badge bg-${statusClass}">${apt.status.toUpperCase()}</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary" onclick='editAppointment(${JSON.stringify(apt)})'>
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteAppointment(${apt.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong><i class="fas fa-envelope"></i> Email:</strong> ${escapeHtml(apt.customer_email)}</p>
+                                <p class="mb-1"><strong><i class="fas fa-phone"></i> Phone:</strong> ${escapeHtml(apt.customer_phone)}</p>
+                                <p class="mb-1"><strong><i class="fas fa-concierge-bell"></i> Service:</strong> ${escapeHtml(apt.service)}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong><i class="fas fa-calendar"></i> Date:</strong> ${new Date(apt.appointment_date).toLocaleDateString()}</p>
+                                <p class="mb-1"><strong><i class="fas fa-clock"></i> Time:</strong> ${apt.appointment_time}</p>
+                                ${apt.notes ? `<p class="mb-1"><strong><i class="fas fa-sticky-note"></i> Notes:</strong> ${escapeHtml(apt.notes)}</p>` : ''}
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-warning" onclick="updateStatus(${apt.id}, 'pending')">Pending</button>
+                            <button class="btn btn-sm btn-outline-success" onclick="updateStatus(${apt.id}, 'confirmed')">Confirm</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="updateStatus(${apt.id}, 'cancelled')">Cancel</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="updateStatus(${apt.id}, 'completed')">Complete</button>
+                        </div>
+                        <small class="text-muted float-end">Booked: ${new Date(apt.created_at).toLocaleString()}</small>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        async function createAppointment(data) {
+            try {
+                const response = await fetch('/api/appointments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+                
+                if (response.ok) {
+                    showAlert('Appointment booked successfully!', 'success');
+                }
+            } catch (error) {
+                showAlert('Error booking appointment', 'danger');
+                console.error('Error creating appointment:', error);
+            }
+        }
+
+        async function updateAppointment(id, data) {
+            try {
+                const response = await fetch(`/api/appointments/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+                
+                if (response.ok) {
+                    showAlert('Appointment updated successfully!', 'success');
+                }
+            } catch (error) {
+                showAlert('Error updating appointment', 'danger');
+                console.error('Error updating appointment:', error);
+            }
+        }
+
+        async function deleteAppointment(id) {
+            if (confirm('Are you sure you want to delete this appointment?')) {
+                try {
+                    const response = await fetch(`/api/appointments/${id}`, {
+                        method: 'DELETE',
+                    });
+                    
+                    if (response.ok) {
+                        showAlert('Appointment deleted successfully!', 'success');
+                        loadAppointments();
+                    }
+                } catch (error) {
+                    showAlert('Error deleting appointment', 'danger');
+                    console.error('Error deleting appointment:', error);
+                }
+            }
+        }
+
+        async function updateStatus(id, status) {
+            try {
+                const response = await fetch(`/api/appointments/${id}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status }),
+                });
+                
+                if (response.ok) {
+                    showAlert(`Appointment ${status}!`, 'success');
+                    loadAppointments();
+                }
+            } catch (error) {
+                showAlert('Error updating status', 'danger');
+                console.error('Error updating status:', error);
+            }
+        }
+
+        function editAppointment(apt) {
+            document.getElementById('customerName').value = apt.customer_name;
+            document.getElementById('customerEmail').value = apt.customer_email;
+            document.getElementById('customerPhone').value = apt.customer_phone;
+            document.getElementById('appointmentDate').value = apt.appointment_date;
+            document.getElementById('appointmentTime').value = apt.appointment_time;
+            document.getElementById('service').value = apt.service;
+            document.getElementById('notes').value = apt.notes || '';
+            document.getElementById('editingId').value = apt.id;
+            document.getElementById('editingStatus').value = apt.status;
+            
+            document.querySelector('#appointmentForm button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Update Appointment';
+            document.getElementById('cancelBtn').style.display = 'inline-block';
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            document.getElementById('appointmentForm').reset();
+            document.getElementById('editingId').value = '';
+            document.getElementById('editingStatus').value = 'pending';
+            document.querySelector('#appointmentForm button[type="submit"]').innerHTML = '<i class="fas fa-calendar-plus"></i> Book Appointment';
+            document.getElementById('cancelBtn').style.display = 'none';
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.row'));
+            
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
