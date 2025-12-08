@@ -103,7 +103,8 @@ jobs:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    # Disabled until Docker Hub credentials are configured
+    if: false
     
     steps:
     - name: Checkout code
@@ -143,7 +144,8 @@ jobs:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: docker
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    # Disabled until Docker Hub credentials are configured
+    if: false
     environment:
       name: staging
       url: https://staging.appointment-booking.com
@@ -168,7 +170,8 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: docker
-    if: github.ref == 'refs/heads/main'
+    # Disabled until Docker Hub credentials are configured
+    if: false
     environment:
       name: production
       url: https://appointment-booking.com
