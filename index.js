@@ -37,7 +37,7 @@ async function initDB() {
       queueLimit: 0
     });
     
-    // Create table
+    // Create tables
     await pool.execute(`
       CREATE TABLE IF NOT EXISTS appointments (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -54,7 +54,31 @@ async function initDB() {
       )
     `);
     
-    console.log('Database connected and appointments table created');
+    // Create users table
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        first_name VARCHAR(100) NOT NULL,
+        last_name VARCHAR(100) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        phone VARCHAR(20) NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role ENUM('user', 'admin') DEFAULT 'user',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Create default admin user if not exists
+    const [adminCheck] = await pool.execute('SELECT * FROM users WHERE email = ?', ['admin@appointment.com']);
+    if (adminCheck.length === 0) {
+      await pool.execute(
+        'INSERT INTO users (first_name, last_name, email, phone, password, role) VALUES (?, ?, ?, ?, ?, ?)',
+        ['Admin', 'User', 'admin@appointment.com', '1234567890', 'admin123', 'admin']
+      );
+      console.log('Default admin user created - Email: admin@appointment.com, Password: admin123');
+    }
+    
+    console.log('Database connected and tables created');
   } catch (error) {
     console.error('Database connection failed:', error.message);
     console.error('\nPlease ensure:');
@@ -68,6 +92,67 @@ async function initDB() {
 // Routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Authentication Routes
+// POST register
+app.post('/api/auth/register', async (req, res) => {
+  const { firstName, lastName, email, phone, password } = req.body;
+  
+  if (!firstName || !lastName || !email || !phone || !password) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+  
+  try {
+    // Check if user already exists
+    const [existing] = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+    
+    // Insert new user (in production, hash the password!)
+    await pool.execute(
+      'INSERT INTO users (first_name, last_name, email, phone, password, role) VALUES (?, ?, ?, ?, ?, ?)',
+      [firstName, lastName, email, phone, password, 'user']
+    );
+    
+    res.status(201).json({ message: 'Registration successful' });
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// POST login
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+  
+  try {
+    const [users] = await pool.execute('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
+    
+    if (users.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    
+    const user = users[0];
+    
+    // In production, generate a proper JWT token
+    const token = Buffer.from(`${user.id}:${user.email}:${Date.now()}`).toString('base64');
+    
+    res.json({ 
+      token, 
+      role: user.role,
+      email: user.email,
+      name: `${user.first_name} ${user.last_name}`
+    });
+  } catch (error) {
+    console.error('Error logging in:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
 });
 
 // GET all appointments
