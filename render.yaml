@@ -1,0 +1,26 @@
+name: appointment-booking
+version: "1.0"
+services:
+  - type: web
+    name: appointment-booking-app
+    env: node
+    buildCommand: npm install
+    startCommand: node index.js
+    healthCheckPath: /health
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: appointment_booking
+      - key: PORT
+        value: 3000
+  
+  - type: database
+    name: appointment-booking-db
+    engine: mysql
+    version: "8.0"
+    databaseName: appointment_booking
