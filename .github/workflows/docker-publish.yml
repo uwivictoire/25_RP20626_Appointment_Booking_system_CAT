@@ -2,12 +2,14 @@ name: Docker Build and Publish
 
 on:
   push:
-    branches: [ main, feature ]
+    branches: [ main ]  # Only run on main, not feature
     tags: [ 'v*.*.*' ]
 
 jobs:
   docker:
     runs-on: ubuntu-latest
+    # Disabled until Docker Hub credentials are set up
+    if: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
