@@ -64,6 +64,14 @@ npm start    # Production mode
    - Web UI: http://localhost:3000
    - Health Check: http://localhost:3000/health
 
+### Git push quick steps
+```bash
+git status
+git add .
+git commit -m "your message"
+git push origin <branch>
+```
+
 ### Docker Development
 
 ```bash
