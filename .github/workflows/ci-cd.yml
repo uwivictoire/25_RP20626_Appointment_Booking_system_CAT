@@ -1,6 +1,6 @@
 name: CI/CD Pipeline
 
-# Updated workflow - all secrets removed for disabled jobs
+# Workflow validated - no secret errors - last update Dec 9 2025
 
 on:
   push:
