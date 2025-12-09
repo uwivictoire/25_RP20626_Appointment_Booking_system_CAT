@@ -188,7 +188,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKER_USERNAME }}/appointment-booking
+          images: docker.io/${{ secrets.DOCKER_USERNAME }}/appointment-booking
           tags: |
             type=ref,event=branch
             type=sha,prefix={{branch}}-
