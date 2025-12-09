@@ -243,7 +243,7 @@ jobs:
     if: success() && github.ref == 'refs/heads/feature'
     environment:
       name: staging
-      url: https://staging.appointment-booking.com
+      url: https://staging-appointment-booking.example.com
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -270,7 +270,7 @@ jobs:
     if: success() && github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: https://appointment-booking.com
+      url: https://appointment-booking.example.com
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
