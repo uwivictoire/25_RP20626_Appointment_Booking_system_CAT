@@ -242,7 +242,7 @@ jobs:
     needs: docker
     if: success() && github.ref == 'refs/heads/feature'
     environment:
-      name: staging
+      name: ${{ github.ref_name }}-staging
       url: https://staging-appointment-booking.example.com
     steps:
       - name: Checkout code
@@ -269,7 +269,7 @@ jobs:
     needs: docker
     if: success() && github.ref == 'refs/heads/main'
     environment:
-      name: production
+      name: ${{ github.ref_name }}-production
       url: https://appointment-booking.example.com
     steps:
       - name: Checkout code
