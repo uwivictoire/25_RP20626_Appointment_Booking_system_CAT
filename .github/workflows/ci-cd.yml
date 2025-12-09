@@ -192,15 +192,22 @@ jobs:
         run: |
           set -e
           IMAGE_NAME="${IMAGE_NAME:-appointment-booking}"
-          # Determine if Docker Hub creds are present and login succeeded
-          if [ "${{ steps.docker-login.outcome }}" = "success" ] && [ -n "${{ secrets.DOCKER_USERNAME }}" ]; then
-            printf "registry=docker.io\n" >> "$GITHUB_OUTPUT"
-            printf "repo=%s/%s\n" "${{ secrets.DOCKER_USERNAME }}" "${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
+          # Only use Docker Hub if login succeeded AND both username and password are set
+          DOCKER_LOGIN_OUTCOME="${{ steps.docker-login.outcome }}"
+          DOCKER_USER="${{ secrets.DOCKER_USERNAME }}"
+          DOCKER_PASS="${{ secrets.DOCKER_PASSWORD }}"
+          if [ "$DOCKER_LOGIN_OUTCOME" = "success" ] && [ -n "$DOCKER_USER" ] && [ -n "$DOCKER_PASS" ]; then
+            {
+              echo "registry=docker.io"
+              echo "repo=${DOCKER_USER}/${IMAGE_NAME}"
+            } >> "$GITHUB_OUTPUT"
             echo "✅ Using Docker Hub"
           else
-            # Fallback to GHCR with repository owner
-            printf "registry=ghcr.io\n" >> "$GITHUB_OUTPUT"
-            printf "repo=%s/%s\n" "${{ github.repository_owner }}" "${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
+            # Fallback to GHCR with repository owner to avoid leading slash in repo
+            {
+              echo "registry=ghcr.io"
+              echo "repo=${{ github.repository_owner }}/${IMAGE_NAME}"
+            } >> "$GITHUB_OUTPUT"
             echo "✅ Using GHCR fallback"
           fi
       - name: Docker metadata (tags/labels)
@@ -255,8 +262,18 @@ jobs:
     steps:
       - name: Prepare release artifacts
         run: |
+          set -e
+          IMAGE_NAME="${IMAGE_NAME:-${{ secrets.IMAGE_NAME }}}"
+          IMAGE_NAME="${IMAGE_NAME:-appointment-booking}"
+          DOCKER_USER="${{ secrets.DOCKER_USERNAME }}"
+          DOCKER_PASS="${{ secrets.DOCKER_PASSWORD }}"
+          if [ -n "$DOCKER_USER" ] && [ -n "$DOCKER_PASS" ]; then
+            IMAGE="docker.io/${DOCKER_USER}/${IMAGE_NAME}:latest"
+          else
+            IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}:latest"
+          fi
           echo "Release tag candidate: ${GITHUB_SHA::7}" > release-info.txt
-          echo "Docker image: docker.io/${{ secrets.DOCKER_USERNAME }}/${IMAGE_NAME}:latest" >> release-info.txt
+          echo "Docker image: ${IMAGE}" >> release-info.txt
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
@@ -292,10 +309,20 @@ jobs:
       - name: Deploy to staging
         run: |
           set -e
-          IMAGE="${{ secrets.DOCKER_USERNAME }}/${IMAGE_NAME}:feature-${{ github.sha }}"
+          IMAGE_NAME="${IMAGE_NAME:-${{ secrets.IMAGE_NAME }}}"
+          IMAGE_NAME="${IMAGE_NAME:-appointment-booking}"
+          DOCKER_USER="${{ secrets.DOCKER_USERNAME }}"
+          DOCKER_PASS="${{ secrets.DOCKER_PASSWORD }}"
+          if [ -n "$DOCKER_USER" ] && [ -n "$DOCKER_PASS" ]; then
+            IMAGE="docker.io/${DOCKER_USER}/${IMAGE_NAME}:feature-${{ github.sha }}"
+            LOGIN_CMD="docker login -u '${DOCKER_USER}' -p '${DOCKER_PASS}'"
+          else
+            IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}:feature-${{ github.sha }}"
+            LOGIN_CMD="docker login ghcr.io -u '${{ github.actor }}' -p '${{ secrets.GITHUB_TOKEN }}'"
+          fi
           echo "Deploying ${IMAGE} to staging..."
           ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "\
-            docker login -u '${{ secrets.DOCKER_USERNAME }}' -p '${{ secrets.DOCKER_PASSWORD }}' && \
+            ${LOGIN_CMD} && \
             docker pull ${IMAGE} && \
             docker stop app || true && \
             docker rm app || true && \
@@ -332,10 +359,20 @@ jobs:
       - name: Deploy to production
         run: |
           set -e
-          IMAGE="${{ secrets.DOCKER_USERNAME }}/${IMAGE_NAME}:latest"
+          IMAGE_NAME="${IMAGE_NAME:-${{ secrets.IMAGE_NAME }}}"
+          IMAGE_NAME="${IMAGE_NAME:-appointment-booking}"
+          DOCKER_USER="${{ secrets.DOCKER_USERNAME }}"
+          DOCKER_PASS="${{ secrets.DOCKER_PASSWORD }}"
+          if [ -n "$DOCKER_USER" ] && [ -n "$DOCKER_PASS" ]; then
+            IMAGE="docker.io/${DOCKER_USER}/${IMAGE_NAME}:latest"
+            LOGIN_CMD="docker login -u '${DOCKER_USER}' -p '${DOCKER_PASS}'"
+          else
+            IMAGE="ghcr.io/${{ github.repository_owner }}/${IMAGE_NAME}:latest"
+            LOGIN_CMD="docker login ghcr.io -u '${{ github.actor }}' -p '${{ secrets.GITHUB_TOKEN }}'"
+          fi
           echo "Deploying ${IMAGE} to production..."
           ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            docker login -u '${{ secrets.DOCKER_USERNAME }}' -p '${{ secrets.DOCKER_PASSWORD }}' && \
+            ${LOGIN_CMD} && \
             docker pull ${IMAGE} && \
             docker stop app || true && \
             docker rm app || true && \
