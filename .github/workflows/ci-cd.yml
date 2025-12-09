@@ -105,8 +105,8 @@ jobs:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: build
-    # Docker job enabled - requires DOCKER_USERNAME and DOCKER_PASSWORD secrets
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature'
+    # Docker job disabled - add DOCKER_USERNAME and DOCKER_PASSWORD secrets to enable
+    if: false
     
     steps:
     - name: Checkout code
@@ -145,8 +145,8 @@ jobs:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: docker
-    # Deploy to staging on feature branch
-    if: github.ref == 'refs/heads/feature'
+    # Disabled - enable after adding Docker secrets
+    if: false
     environment:
       name: staging
       url: https://staging.appointment-booking.com
@@ -171,8 +171,8 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: docker
-    # Deploy to production on main branch
-    if: github.ref == 'refs/heads/main'
+    # Disabled - enable after adding Docker secrets
+    if: false
     environment:
       name: production
       url: https://appointment-booking.com
