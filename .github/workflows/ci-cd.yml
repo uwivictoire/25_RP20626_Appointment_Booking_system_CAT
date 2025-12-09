@@ -189,10 +189,8 @@ jobs:
         with:
           context: .
           push: true
-          tags: |
-            docker.io/${{ secrets.DOCKER_USERNAME }}/appointment-booking:latest
-            docker.io/${{ secrets.DOCKER_USERNAME }}/appointment-booking:main
-            docker.io/${{ secrets.DOCKER_USERNAME }}/appointment-booking:${{ github.sha }}
+          load: false
+          tags: docker.io/${{ secrets.DOCKER_USERNAME }}/appointment-booking:latest,docker.io/${{ secrets.DOCKER_USERNAME }}/appointment-booking:main,docker.io/${{ secrets.DOCKER_USERNAME }}/appointment-booking:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Notify Slack (docker)
