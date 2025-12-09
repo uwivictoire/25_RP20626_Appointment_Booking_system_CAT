@@ -193,3 +193,98 @@ jobs:
             { "text": "*Docker* job completed with status: ${{ job.status }} (run: ${{ github.run_id }})" }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  release:
+    name: Release and Version
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get package version
+        id: package_version
+        run: echo "VERSION=$(cat package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[",]//g' | tr -d ' ')" >> $GITHUB_OUTPUT
+      - name: Create Git Tag
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git tag -a v${{ steps.package_version.outputs.VERSION }} -m "Release version ${{ steps.package_version.outputs.VERSION }}"
+          git push origin v${{ steps.package_version.outputs.VERSION }}
+      - name: Generate Release Notes
+        id: release_notes
+        run: |
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
+          echo "### Release v${{ steps.package_version.outputs.VERSION }}" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "**Docker Image:** \`${{ secrets.DOCKER_USERNAME }}/appointment-booking-system:v${{ steps.package_version.outputs.VERSION }}\`" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "**Build Artifacts:** Available in GitHub Actions" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.package_version.outputs.VERSION }}
+          body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Notify Slack (release)
+        if: always()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            { "text": "*Release* v${{ steps.package_version.outputs.VERSION }} completed with status: ${{ job.status }} (run: ${{ github.run_id }})" }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+    needs: release
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://your-deployment-url.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Get package version
+        id: package_version
+        run: echo "VERSION=$(cat package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[",]//g' | tr -d ' ')" >> $GITHUB_OUTPUT
+      - name: Deploy to Production
+        run: |
+          echo "Deploying version v${{ steps.package_version.outputs.VERSION }}"
+          echo "Docker image: ${{ secrets.DOCKER_USERNAME }}/appointment-booking-system:v${{ steps.package_version.outputs.VERSION }}"
+          # Add your deployment commands here
+          # Example: docker pull, docker run, or kubernetes deployment
+          # curl -X POST https://your-deployment-api.com/deploy \
+          #   -H "Authorization: Bearer ${{ secrets.DEPLOY_TOKEN }}" \
+          #   -H "Content-Type: application/json" \
+          #   -d '{"image":"${{ secrets.DOCKER_USERNAME }}/appointment-booking-system:v${{ steps.package_version.outputs.VERSION }}"}'
+      - name: Verify Deployment
+        run: |
+          echo "Verifying deployment..."
+          # Add health check or verification logic here
+          # Example: curl http://your-deployment-url.com/health
+      - name: Notify Slack (deploy success)
+        if: success()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            { "text": "✅ *Deployment* v${{ steps.package_version.outputs.VERSION }} to Production succeeded! (run: ${{ github.run_id }})" }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Notify Slack (deploy failure)
+        if: failure()
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            { "text": "❌ *Deployment* v${{ steps.package_version.outputs.VERSION }} to Production failed! (run: ${{ github.run_id }})" }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
