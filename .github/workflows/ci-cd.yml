@@ -105,8 +105,8 @@ jobs:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
     needs: build
-    # Enable this when Docker Hub credentials are configured
-    if: github.ref == 'refs/heads/main'
+    # Docker job disabled - add DOCKER_USERNAME and DOCKER_PASSWORD secrets to enable
+    if: false
     
     steps:
     - name: Checkout code
