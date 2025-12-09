@@ -188,13 +188,16 @@ jobs:
       - name: Check registry target
         id: registry
         run: |
-          if [ "${{ steps.docker-login.outcome }}" == "success" ]; then
-            echo "registry=docker.io" >> $GITHUB_OUTPUT
-            echo "repo=${{ secrets.DOCKER_USERNAME }}/appointment-booking" >> $GITHUB_OUTPUT
+          set -e
+          # Determine if Docker Hub creds are present and login succeeded
+          if [ "${{ steps.docker-login.outcome }}" = "success" ] && [ -n "${{ secrets.DOCKER_USERNAME }}" ]; then
+            printf "registry=docker.io\n" >> "$GITHUB_OUTPUT"
+            printf "repo=%s/appointment-booking\n" "${{ secrets.DOCKER_USERNAME }}" >> "$GITHUB_OUTPUT"
             echo "✅ Using Docker Hub"
           else
-            echo "registry=ghcr.io" >> $GITHUB_OUTPUT
-            echo "repo=${{ github.repository_owner }}/appointment-booking" >> $GITHUB_OUTPUT
+            # Fallback to GHCR with repository owner
+            printf "registry=ghcr.io\n" >> "$GITHUB_OUTPUT"
+            printf "repo=%s/appointment-booking\n" "${{ github.repository_owner }}" >> "$GITHUB_OUTPUT"
             echo "✅ Using GHCR fallback"
           fi
       - name: Docker metadata (tags/labels)
@@ -272,7 +275,6 @@ jobs:
     if: success() && github.ref == 'refs/heads/feature'
     environment:
       name: ${{ github.ref_name }}-staging
-      url: https://staging-appointment-booking.example.com
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -299,7 +301,6 @@ jobs:
     if: success() && github.ref == 'refs/heads/main'
     environment:
       name: ${{ github.ref_name }}-production
-      url: https://appointment-booking.example.com
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
