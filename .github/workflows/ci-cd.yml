@@ -1,11 +1,13 @@
-# To push changes (recommended via HTTPS to avoid SSH fingerprint prompts):
+# To push changes:
 #   git status
 #   git add .
-#   git commit -m "your message"
+#   git commit -m "Update CI/CD pipeline with corrected registry logic"
 #   git remote set-url origin https://github.com/<OWNER>/<REPO>.git
-#   git push origin <branch>
-# If asked for username/password: use your GitHub username and a Personal Access Token (PAT) as the password.
-# Create a PAT: https://github.com/settings/tokens (scopes: repo)
+#   git config --global credential.helper cache
+#   git push origin main
+# Replace <OWNER>/<REPO> with your GitHub username/repo name (e.g., john/Appointment_Booking_System)
+# When prompted, enter GitHub username and Personal Access Token (PAT).
+# Create PAT: https://github.com/settings/tokens (scopes: repo)
 # All actions updated to v4
 name: CI/CD Pipeline
 
