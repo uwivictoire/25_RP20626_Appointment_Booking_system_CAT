@@ -1,8 +1,11 @@
-# To push changes:
-# 1) git status
-# 2) git add .
-# 3) git commit -m "your message"
-# 4) git push origin <branch>
+# To push changes (recommended via HTTPS to avoid SSH fingerprint prompts):
+#   git status
+#   git add .
+#   git commit -m "your message"
+#   git remote set-url origin https://github.com/<OWNER>/<REPO>.git
+#   git push origin <branch>
+# If asked for username/password: use your GitHub username and a Personal Access Token (PAT) as the password.
+# Create a PAT: https://github.com/settings/tokens (scopes: repo)
 # All actions updated to v4
 name: CI/CD Pipeline
 
