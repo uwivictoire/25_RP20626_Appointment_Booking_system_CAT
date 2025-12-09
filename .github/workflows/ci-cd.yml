@@ -11,6 +11,14 @@
 # All actions updated to v4
 name: CI/CD Pipeline
 
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  actions: read
+  checks: read
+  deployments: write
+
 on:
   push:
     branches: [ main, feature, develop ]
@@ -214,7 +222,7 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
           git tag -a v${{ steps.package_version.outputs.VERSION }} -m "Release version ${{ steps.package_version.outputs.VERSION }}"
-          git push origin v${{ steps.package_version.outputs.VERSION }}
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git v${{ steps.package_version.outputs.VERSION }}
       - name: Generate Release Notes
         id: release_notes
         run: |
