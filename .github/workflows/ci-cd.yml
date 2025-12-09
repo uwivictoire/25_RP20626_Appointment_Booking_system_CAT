@@ -139,7 +139,7 @@ jobs:
           echo "Commit: ${{ github.sha }}" >> build-info.txt
           echo "Branch: ${{ github.ref_name }}" >> build-info.txt
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: |
@@ -225,7 +225,7 @@ jobs:
           echo "Release tag candidate: ${GITHUB_SHA::7}" > release-info.txt
           echo "Docker image: docker.io/${{ secrets.DOCKER_USERNAME }}/appointment-booking:latest" >> release-info.txt
       - name: Upload release artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-info
           path: release-info.txt
