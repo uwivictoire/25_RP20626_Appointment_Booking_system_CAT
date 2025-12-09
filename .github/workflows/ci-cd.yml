@@ -178,22 +178,30 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Check Docker Login Status
-        id: check-login
+      - name: Log in to GHCR (fallback)
+        if: steps.docker-login.outcome != 'success'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check registry target
+        id: registry
         run: |
           if [ "${{ steps.docker-login.outcome }}" == "success" ]; then
-            echo "login_success=true" >> $GITHUB_OUTPUT
-            echo "✅ Docker Hub login successful"
+            echo "registry=docker.io" >> $GITHUB_OUTPUT
+            echo "repo=${{ secrets.DOCKER_USERNAME }}/appointment-booking" >> $GITHUB_OUTPUT
+            echo "✅ Using Docker Hub"
           else
-            echo "login_success=false" >> $GITHUB_OUTPUT
-            echo "⚠️ Docker Hub credentials not configured - skipping image push"
-            echo "ℹ️ To enable Docker builds, add DOCKER_USERNAME and DOCKER_PASSWORD secrets"
+            echo "registry=ghcr.io" >> $GITHUB_OUTPUT
+            echo "repo=${{ github.repository_owner }}/appointment-booking" >> $GITHUB_OUTPUT
+            echo "✅ Using GHCR fallback"
           fi
       - name: Docker metadata (tags/labels)
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: docker.io/${{ secrets.DOCKER_USERNAME }}/appointment-booking
+          images: ${{ steps.registry.outputs.registry }}/${{ steps.registry.outputs.repo }}
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
@@ -202,7 +210,6 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
       - name: Build and push Docker image
-        if: steps.check-login.outputs.login_success == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -210,13 +217,21 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ github.ref_name }}
+          cache-to: type=gha,mode=max,scope=${{ github.ref_name }}
           build-args: |
             NODE_ENV=production
             GIT_COMMIT=${{ github.sha }}
           sbom: true
           provenance: true
+      - name: Export image tags for downstream jobs
+        run: |
+          echo "${{ steps.meta.outputs.tags }}" > image-tags.txt
+      - name: Upload image tags artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-image-tags
+          path: image-tags.txt
       - name: Notify Slack (docker)
         if: always()
         uses: slackapi/slack-github-action@v1.27.0
