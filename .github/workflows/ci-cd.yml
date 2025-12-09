@@ -164,6 +164,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Verify Dockerfile exists
+        run: |
+          test -f Dockerfile || (echo "Dockerfile not found at repository root" && exit 1)
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -209,6 +212,11 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+            GIT_COMMIT=${{ github.sha }}
+          sbom: true
+          provenance: true
       - name: Notify Slack (docker)
         if: always()
         uses: slackapi/slack-github-action@v1.27.0
