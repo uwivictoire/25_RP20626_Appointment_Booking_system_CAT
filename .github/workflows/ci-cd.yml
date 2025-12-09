@@ -206,7 +206,9 @@ jobs:
           fetch-depth: 0
       - name: Get package version
         id: package_version
-        run: echo "VERSION=$(cat package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[",]//g' | tr -d ' ')" >> $GITHUB_OUTPUT
+        run: |
+          VERSION=$(cat package.json | grep version | head -1 | awk -F: '{print $2}' | sed 's/[",]//g' | tr -d ' ')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
       - name: Create Git Tag
         run: |
           git config --global user.email "github-actions@github.com"
@@ -256,7 +258,9 @@ jobs:
         uses: actions/checkout@v4
       - name: Get package version
         id: package_version
-        run: echo "VERSION=$(cat package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[",]//g' | tr -d ' ')" >> $GITHUB_OUTPUT
+        run: |
+          VERSION=$(cat package.json | grep version | head -1 | awk -F: '{print $2}' | sed 's/[",]//g' | tr -d ' ')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
       - name: Deploy to Production
         run: |
           echo "Deploying version v${{ steps.package_version.outputs.VERSION }}"
