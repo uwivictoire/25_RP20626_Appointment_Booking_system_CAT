@@ -191,19 +191,25 @@ jobs:
         id: registry
         run: |
           set -e
+          # Safe default for IMAGE_NAME: use secret if set, else repo name, else fallback
+          RAW_IMAGE_NAME="${IMAGE_NAME}"
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          IMAGE_NAME="${RAW_IMAGE_NAME:-$REPO_NAME}"
           IMAGE_NAME="${IMAGE_NAME:-appointment-booking}"
-          # Only use Docker Hub if login succeeded AND both username and password are set
+          # Strip any leading slash just in case
+          IMAGE_NAME="${IMAGE_NAME#/}"
+
           DOCKER_LOGIN_OUTCOME="${{ steps.docker-login.outcome }}"
           DOCKER_USER="${{ secrets.DOCKER_USERNAME }}"
           DOCKER_PASS="${{ secrets.DOCKER_PASSWORD }}"
-          if [ "$DOCKER_LOGIN_OUTCOME" = "success" ] && [ -n "$DOCKER_USER" ] && [ -n "$DOCKER_PASS" ]; then
+          # Validate Docker Hub username (non-empty and sane chars)
+          if [ "$DOCKER_LOGIN_OUTCOME" = "success" ] && [ -n "$DOCKER_USER" ] && [ -n "$DOCKER_PASS" ] && echo "$DOCKER_USER" | grep -Eq '^[a-z0-9]+[a-z0-9_-]*$'; then
             {
               echo "registry=docker.io"
               echo "repo=${DOCKER_USER}/${IMAGE_NAME}"
             } >> "$GITHUB_OUTPUT"
             echo "✅ Using Docker Hub"
           else
-            # Fallback to GHCR with repository owner to avoid leading slash in repo
             {
               echo "registry=ghcr.io"
               echo "repo=${{ github.repository_owner }}/${IMAGE_NAME}"
@@ -302,6 +308,10 @@ jobs:
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Add GitHub to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
       - name: Add staging host to known_hosts
         run: |
           mkdir -p ~/.ssh
@@ -352,6 +362,10 @@ jobs:
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Add GitHub to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
       - name: Add production host to known_hosts
         run: |
           mkdir -p ~/.ssh
