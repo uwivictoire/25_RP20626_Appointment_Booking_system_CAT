@@ -186,8 +186,7 @@ jobs:
       - name: Build and push Docker image
         if: steps.check-login.outputs.login_success == 'true'
         run: |
-          docker buildx build \
-            --push \
+          docker buildx build --push \
             --tag docker.io/${{ secrets.DOCKER_USERNAME }}/appointment-booking:latest \
             --tag docker.io/${{ secrets.DOCKER_USERNAME }}/appointment-booking:main \
             --tag docker.io/${{ secrets.DOCKER_USERNAME }}/appointment-booking:${{ github.sha }} \
