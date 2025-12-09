@@ -99,3 +99,24 @@ echo -e "   ${YELLOW}git checkout -b feature${NC}"
 echo -e "   ${YELLOW}git push -u origin feature${NC}"
 echo ""
 echo -e "${GREEN}CI/CD pipeline will automatically run on push!${NC}"
+
+# Helper script to set git identity and push
+#!/usr/bin/env bash
+# Usage: ./setup-github.sh <branch> "commit message"
+set -euo pipefail
+
+BRANCH="${1:-}"
+MESSAGE="${2:-}"
+
+if [ -z "$BRANCH" ] || [ -z "$MESSAGE" ]; then
+  echo "Usage: $0 <branch> \"commit message\""
+  exit 1
+fi
+
+git config user.name "Your Name"
+git config user.email "you@example.com"
+
+git status
+git add .
+git commit -m "$MESSAGE" || true
+git push origin "$BRANCH"
