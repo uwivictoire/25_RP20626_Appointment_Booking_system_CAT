@@ -57,5 +57,9 @@ The workflow is already configured to skip Docker builds when credentials are mi
 - ✅ Push to Docker Hub
 - ✅ Automated deployments
 
+## Phase 5: Release
+- Implement versioning and tagging in Git.
+- Generate release artifacts (Docker images pushed to Docker Hub or a private registry).
+
 ## Questions?
 Check DOCKER_FIX.md for detailed instructions.
