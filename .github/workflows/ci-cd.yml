@@ -105,9 +105,6 @@ jobs:
     needs: build
     # Disabled until Docker Hub credentials are configured
     if: false
-    env:
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME || 'placeholder' }}
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD || 'placeholder' }}
     
     steps:
     - name: Checkout code
@@ -120,14 +117,14 @@ jobs:
       continue-on-error: true
       uses: docker/login-action@v3
       with:
-        username: ${{ env.DOCKER_USERNAME }}
-        password: ${{ env.DOCKER_PASSWORD }}
+        username: myuser
+        password: mypassword
 
     - name: Extract metadata
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.DOCKER_USERNAME }}/appointment-booking
+        images: myuser/appointment-booking
         tags: |
           type=ref,event=branch
           type=sha,prefix={{branch}}-
@@ -152,8 +149,6 @@ jobs:
     environment:
       name: staging
       url: https://staging.appointment-booking.com
-    env:
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME || 'placeholder' }}
     
     steps:
     - name: Checkout code
@@ -162,7 +157,7 @@ jobs:
     - name: Deploy to staging
       run: |
         echo "Deploying to staging environment..."
-        echo "Image: ${DOCKER_USERNAME}/appointment-booking:feature-${{ github.sha }}"
+        echo "Image: myuser/appointment-booking:feature-${{ github.sha }}"
         # Add your staging deployment commands here
         # Example: kubectl set image deployment/app app=${DOCKER_USERNAME}/appointment-booking:feature-${{ github.sha }}
 
@@ -180,8 +175,6 @@ jobs:
     environment:
       name: production
       url: https://appointment-booking.com
-    env:
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME || 'placeholder' }}
     
     steps:
     - name: Checkout code
@@ -190,7 +183,7 @@ jobs:
     - name: Deploy to production
       run: |
         echo "Deploying to production environment..."
-        echo "Image: ${DOCKER_USERNAME}/appointment-booking:latest"
+        echo "Image: myuser/appointment-booking:latest"
         # Add your production deployment commands here
         # Example: kubectl set image deployment/app app=${DOCKER_USERNAME}/appointment-booking:latest
 
