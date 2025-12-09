@@ -221,7 +221,7 @@ jobs:
       - name: Prepare release artifacts
         run: |
           echo "Release tag candidate: ${GITHUB_SHA::7}" > release-info.txt
-          echo "Docker image: ${{ secrets.DOCKER_USERNAME }}/appointment-booking:latest" >> release-info.txt
+          echo "Docker image: docker.io/${{ secrets.DOCKER_USERNAME }}/appointment-booking:latest" >> release-info.txt
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
