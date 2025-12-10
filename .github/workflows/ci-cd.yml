@@ -221,8 +221,13 @@ jobs:
         run: |
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
-          git tag -a v${{ steps.package_version.outputs.VERSION }} -m "Release version ${{ steps.package_version.outputs.VERSION }}"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git v${{ steps.package_version.outputs.VERSION }}
+          # Check if tag already exists
+          if git rev-parse v${{ steps.package_version.outputs.VERSION }} >/dev/null 2>&1; then
+            echo "Tag v${{ steps.package_version.outputs.VERSION }} already exists, skipping creation"
+          else
+            git tag -a v${{ steps.package_version.outputs.VERSION }} -m "Release version ${{ steps.package_version.outputs.VERSION }}"
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git v${{ steps.package_version.outputs.VERSION }}
+          fi
       - name: Generate Release Notes
         id: release_notes
         run: |
@@ -236,6 +241,7 @@ jobs:
           echo "**Build Artifacts:** Available in GitHub Actions" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
       - name: Create GitHub Release
+        continue-on-error: true
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.package_version.outputs.VERSION }}
