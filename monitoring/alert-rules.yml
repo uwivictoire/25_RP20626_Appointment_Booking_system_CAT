@@ -1,0 +1,183 @@
+groups:
+  - name: appointment_booking_alerts
+    interval: 15s
+    rules:
+      # Critical: Service Down
+      - alert: ServiceDown
+        expr: up{job="appointment-booking-system"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: appointment-booking-system
+        annotations:
+          summary: "Appointment Booking System is down"
+          description: "Service {{ $labels.instance }} has been down for more than 2 minutes"
+          runbook_url: "https://wiki.example.com/runbooks/service-down"
+
+      # Critical: High Error Rate (>1%)
+      - alert: HighErrorRate
+        expr: (rate(http_requests_total{job="appointment-booking-system", status=~"5.."}[5m]) / rate(http_requests_total{job="appointment-booking-system"}[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          service: appointment-booking-system
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 1%) on {{ $labels.instance }}"
+          runbook_url: "https://wiki.example.com/runbooks/high-error-rate"
+
+      # Warning: Elevated Error Rate (>0.5%)
+      - alert: ElevatedErrorRate
+        expr: (rate(http_requests_total{job="appointment-booking-system", status=~"5.."}[5m]) / rate(http_requests_total{job="appointment-booking-system"}[5m])) > 0.005
+        for: 10m
+        labels:
+          severity: warning
+          service: appointment-booking-system
+        annotations:
+          summary: "Elevated error rate"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 0.5%) on {{ $labels.instance }}"
+          runbook_url: "https://wiki.example.com/runbooks/elevated-error-rate"
+
+      # Critical: High Response Time (>5s)
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="appointment-booking-system"}[5m])) > 5
+        for: 10m
+        labels:
+          severity: critical
+          service: appointment-booking-system
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value | humanizeDuration }} on {{ $labels.instance }}"
+          runbook_url: "https://wiki.example.com/runbooks/high-response-time"
+
+      # Warning: Elevated Response Time (>2s)
+      - alert: ElevatedResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="appointment-booking-system"}[5m])) > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: appointment-booking-system
+        annotations:
+          summary: "Elevated response time"
+          description: "95th percentile response time is {{ $value | humanizeDuration }} on {{ $labels.instance }}"
+          runbook_url: "https://wiki.example.com/runbooks/elevated-response-time"
+
+      # Critical: High Memory Usage (>85%)
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+        for: 5m
+        labels:
+          severity: critical
+          service: node-metrics
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          runbook_url: "https://wiki.example.com/runbooks/high-memory"
+
+      # Warning: Elevated Memory Usage (>75%)
+      - alert: ElevatedMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.75
+        for: 10m
+        labels:
+          severity: warning
+          service: node-metrics
+        annotations:
+          summary: "Elevated memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          runbook_url: "https://wiki.example.com/runbooks/elevated-memory"
+
+      # Critical: High CPU Usage (>90%)
+      - alert: HighCPUUsage
+        expr: (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 90
+        for: 5m
+        labels:
+          severity: critical
+          service: node-metrics
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+          runbook_url: "https://wiki.example.com/runbooks/high-cpu"
+
+      # Warning: Elevated CPU Usage (>75%)
+      - alert: ElevatedCPUUsage
+        expr: (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 75
+        for: 10m
+        labels:
+          severity: warning
+          service: node-metrics
+        annotations:
+          summary: "Elevated CPU usage"
+          description: "CPU usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+          runbook_url: "https://wiki.example.com/runbooks/elevated-cpu"
+
+      # Warning: Low Disk Space (<10%)
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs"} / node_filesystem_size_bytes) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: node-metrics
+        annotations:
+          summary: "Low disk space"
+          description: "Disk {{ $labels.device }} has {{ $value | humanizePercentage }} free space"
+          runbook_url: "https://wiki.example.com/runbooks/low-disk-space"
+
+      # Critical: Database Connection Pool Exhausted
+      - alert: DBConnectionPoolExhausted
+        expr: db_connection_pool_size{job="appointment-booking-system"} >= db_connection_pool_max{job="appointment-booking-system"}
+        for: 2m
+        labels:
+          severity: critical
+          service: appointment-booking-system
+        annotations:
+          summary: "Database connection pool exhausted"
+          description: "Connection pool is at {{ $value }} connections on {{ $labels.instance }}"
+          runbook_url: "https://wiki.example.com/runbooks/db-connection-pool"
+
+      # Warning: High Latency in Database Queries
+      - alert: HighDBLatency
+        expr: histogram_quantile(0.95, rate(db_query_duration_seconds_bucket{job="appointment-booking-system"}[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: appointment-booking-system
+        annotations:
+          summary: "High database query latency"
+          description: "95th percentile DB query time is {{ $value | humanizeDuration }} on {{ $labels.instance }}"
+          runbook_url: "https://wiki.example.com/runbooks/high-db-latency"
+
+# SLA and Error Budget Rules
+  - name: sla_error_budget
+    interval: 15s
+    rules:
+      # Error Budget Alert: Using >50% of monthly budget
+      - alert: ErrorBudgetWarning
+        expr: |
+          (
+            (rate(http_requests_total{job="appointment-booking-system", status=~"5.."}[30d]) * 2592000) /
+            (rate(http_requests_total{job="appointment-booking-system"}[30d]) * 2592000)
+          ) > 0.001
+        for: 1m
+        labels:
+          severity: warning
+          sla: "99.9%"
+        annotations:
+          summary: "Error budget warning"
+          description: "Monthly error budget is being consumed. Current SLA: 99.9%, Allowed downtime: 43.2 min/month"
+          runbook_url: "https://wiki.example.com/runbooks/error-budget"
+
+      # Uptime Tracking: Monthly uptime < 99.9%
+      - alert: SLAViolation
+        expr: |
+          (
+            (rate(http_requests_total{job="appointment-booking-system", status!~"5.."}[30d]) * 2592000) /
+            (rate(http_requests_total{job="appointment-booking-system"}[30d]) * 2592000)
+          ) < 0.999
+        for: 5m
+        labels:
+          severity: critical
+          sla: "99.9%"
+        annotations:
+          summary: "SLA violation"
+          description: "Uptime has fallen below 99.9% target ({{ $value | humanizePercentage }})"
+          runbook_url: "https://wiki.example.com/runbooks/sla-violation"
